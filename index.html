@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>하루 다섯 단어</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,700&family=Noto+Sans+KR:wght@400;500;700&family=Charis+SIL:wght@400&display=swap">
+<style>
+/* Layout: one reading column of dictionary-entry cards under a compact control bar; the target word in each example is marked like a highlighter pen. */
+:root {
+  --bg: #f3f6f5;
+  --surface: #ffffff;
+  --fg: #16202a;
+  --muted: #5b6871;
+  --line: #d9e1df;
+  --accent: #1d5a88;
+  --accent-soft: #e3edf5;
+  --marker: #ffe07a;
+  --good: #2e7d4f;
+  --good-soft: #e3f2e8;
+  --f-word: "Literata", "Georgia", "Times New Roman", serif;
+  --f-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-ipa: "Charis SIL", "Doulos SIL", "Gentium Plus", "Lucida Sans Unicode", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151a; --surface: #161f26; --fg: #e5ebee; --muted: #93a1aa; --line: #26323b;
+    --accent: #7db6e6; --accent-soft: #1c2c3a; --marker: rgba(255, 210, 80, .30);
+    --good: #6fcf97; --good-soft: #17301f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151a; --surface: #161f26; --fg: #e5ebee; --muted: #93a1aa; --line: #26323b;
+  --accent: #7db6e6; --accent-soft: #1c2c3a; --marker: rgba(255, 210, 80, .30);
+  --good: #6fcf97; --good-soft: #17301f; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+header { display: flex; flex-direction: column; gap: 6px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; color: var(--muted); font-weight: 500; }
+h1 { font-family: var(--f-word); font-weight: 700; font-size: clamp(28px, 6vw, 38px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; }
+
+.daynav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.date { font-weight: 700; font-size: 16px; margin-right: auto; font-variant-numeric: tabular-nums; }
+.progress { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible + .check-box { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
+  padding: 6px 12px; font-size: 14px; line-height: 1.4;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: .4; cursor: default; }
+
+.toolbar {
+  display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+}
+.group { display: flex; align-items: center; gap: 8px; }
+.group-label { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 5px 11px; font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface); font-weight: 500; }
+.play-all { margin-left: auto; background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.play-all:hover:not(:disabled) { filter: brightness(1.08); }
+.toggle[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+.notice { font-size: 13px; color: var(--muted); background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; margin: 0; }
+
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.card.is-active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.card.is-learned .word { color: var(--good); }
+
+.head { display: flex; align-items: flex-start; gap: 12px; }
+.head-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.word { font-family: var(--f-word); font-weight: 700; font-size: clamp(26px, 5.5vw, 32px); line-height: 1.2; margin: 0; overflow-wrap: anywhere; }
+.meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.ipa { font-family: var(--f-ipa); font-size: 17px; color: var(--muted); }
+.pos { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 1px 6px; }
+.meaning { font-size: 16px; font-weight: 500; margin: 0; }
+
+.speak {
+  flex: none; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--surface);
+  display: inline-grid; place-items: center; color: var(--accent);
+}
+.speak:hover { border-color: var(--accent); background: var(--accent-soft); }
+.speak.is-speaking { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.speak.sm { width: 34px; height: 34px; }
+.speak svg { width: 18px; height: 18px; }
+
+.example { border-top: 1px dashed var(--line); padding-top: 12px; display: flex; gap: 12px; align-items: flex-start; }
+.example-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.en { font-family: var(--f-word); font-size: 17px; line-height: 1.55; margin: 0; }
+.en mark { background: linear-gradient(transparent 45%, var(--marker) 45%, var(--marker) 92%, transparent 92%); color: inherit; font-weight: 700; padding: 0 1px; }
+.ko-line { color: var(--muted); font-size: 14px; margin: 0; }
+
+.hide-ko .ko { filter: blur(6px); cursor: pointer; user-select: none; transition: filter .2s; }
+.hide-ko .ko.revealed { filter: none; user-select: auto; }
+
+.foot { display: flex; justify-content: flex-end; }
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.check input { position: absolute; opacity: 0; pointer-events: none; }
+.check-box { width: 18px; height: 18px; border: 1.5px solid var(--line); border-radius: 5px; display: grid; place-items: center; background: var(--surface); }
+.check input:checked + .check-box { background: var(--good); border-color: var(--good); }
+.check input:checked + .check-box::after { content: ""; width: 5px; height: 9px; border: solid var(--surface); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+.check input:checked ~ span:last-child { color: var(--good); font-weight: 500; }
+
+.footer-note { font-size: 12px; color: var(--muted); margin: 0; text-align: center; }
+
+@media (max-width: 520px) {
+  .card { padding: 16px; }
+  .play-all { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">고등 · 수능 · 토플 필수 어휘</span>
+    <h1>하루 다섯 단어</h1>
+    <p class="sub">매일 자정에 새 단어 5개가 나옵니다. 스피커 버튼을 눌러 발음을 듣고 따라 읽어 보세요.</p>
+  </header>
+
+  <div class="daynav">
+    <span class="date" id="date"></span>
+    <span class="progress" id="progress"></span>
+    <button class="btn" id="prev" type="button" aria-label="이전 날">‹ 이전</button>
+    <button class="btn" id="today" type="button">오늘</button>
+    <button class="btn" id="next" type="button" aria-label="다음 날">다음 ›</button>
+  </div>
+
+  <div class="toolbar">
+    <div class="group">
+      <span class="group-label">발음</span>
+      <div class="seg" id="lang">
+        <button type="button" id="lang-us" data-v="en-US" aria-pressed="true">미국식</button>
+        <button type="button" id="lang-gb" data-v="en-GB" aria-pressed="false">영국식</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="group-label">속도</span>
+      <div class="seg" id="rate">
+        <button type="button" id="rate-slow" data-v="0.65" aria-pressed="false">느리게</button>
+        <button type="button" id="rate-normal" data-v="0.9" aria-pressed="true">보통</button>
+        <button type="button" id="rate-fast" data-v="1.1" aria-pressed="false">빠르게</button>
+      </div>
+    </div>
+    <button class="btn toggle" id="hide" type="button" aria-pressed="false">뜻 가리기</button>
+    <button class="btn play-all" id="playall" type="button">▶ 전체 듣기</button>
+  </div>
+
+  <p class="notice" id="notice" hidden>이 브라우저는 음성 읽기를 지원하지 않습니다. Chrome, Edge, Safari 최신 버전에서 열어 주세요.</p>
+
+  <ol class="list" id="list"></ol>
+
+  <p class="footer-note">단어 150개를 30일 주기로 섞어서 보여 줍니다. 음성은 기기에 설치된 영어 음성을 사용합니다.</p>
+</div>
+
+<script>
+// [word, part of speech, IPA (US), 뜻, example, 예문 해석]
+const W = [
+["abundant","adj.","/əˈbʌndənt/","풍부한","Fresh water is abundant in this region, so farming is easy.","이 지역은 담수가 풍부해서 농사짓기가 쉽다."],
+["accommodate","v.","/əˈkɑːmədeɪt/","수용하다; 편의를 제공하다","The new stadium can accommodate up to 60,000 fans.","새 경기장은 최대 6만 명의 팬을 수용할 수 있다."],
+["acquire","v.","/əˈkwaɪər/","습득하다, 얻다","Children acquire language faster than adults do.","아이들은 어른보다 언어를 더 빨리 습득한다."],
+["adequate","adj.","/ˈædɪkwət/","충분한, 적절한","Make sure you get adequate sleep before the exam.","시험 전에 충분한 잠을 자도록 해라."],
+["advocate","v.","/ˈædvəkeɪt/","지지하다, 옹호하다","Many doctors advocate regular exercise for heart health.","많은 의사들이 심장 건강을 위해 규칙적인 운동을 권장한다."],
+["alleviate","v.","/əˈliːvieɪt/","완화하다, 덜어 주다","This medicine will alleviate the pain in your knee.","이 약이 무릎 통증을 완화해 줄 것이다."],
+["ambiguous","adj.","/æmˈbɪɡjuəs/","애매모호한","The last line of the poem is deliberately ambiguous.","그 시의 마지막 행은 의도적으로 모호하다."],
+["anticipate","v.","/ænˈtɪsɪpeɪt/","예상하다, 기대하다","We didn't anticipate so many people coming to the event.","우리는 그렇게 많은 사람이 행사에 올 거라고 예상하지 못했다."],
+["arbitrary","adj.","/ˈɑːrbɪtreri/","임의의, 제멋대로인","The rules seemed arbitrary and unfair to the students.","그 규칙들은 학생들에게 자의적이고 불공평해 보였다."],
+["articulate","v.","/ɑːrˈtɪkjuleɪt/","분명히 표현하다","She articulated her ideas clearly during the debate.","그녀는 토론에서 자기 생각을 명확하게 표현했다."],
+["assess","v.","/əˈses/","평가하다","Teachers assess students' progress at the end of each term.","교사들은 매 학기 말에 학생들의 성취도를 평가한다."],
+["attribute","v.","/əˈtrɪbjuːt/","~의 덕분(탓)으로 여기다","He attributes his success to hard work and luck.","그는 자신의 성공을 노력과 운 덕분으로 여긴다."],
+["benevolent","adj.","/bəˈnevələnt/","자비로운, 인정 많은","The benevolent old man donated his savings to the orphanage.","인정 많은 노인은 저축한 돈을 고아원에 기부했다."],
+["bias","n.","/ˈbaɪəs/","편견, 편향","Journalists should try to report the news without bias.","기자는 편견 없이 뉴스를 보도하려고 노력해야 한다."],
+["coherent","adj.","/koʊˈhɪrənt/","일관성 있는, 논리 정연한","Your essay needs a more coherent structure.","네 에세이는 좀 더 일관성 있는 구조가 필요하다."],
+["coincide","v.","/ˌkoʊɪnˈsaɪd/","동시에 일어나다, 일치하다","My birthday coincides with the school festival this year.","올해는 내 생일이 학교 축제와 겹친다."],
+["compensate","v.","/ˈkɑːmpenseɪt/","보상하다","The company will compensate workers for overtime.","회사는 초과 근무에 대해 직원들에게 보상할 것이다."],
+["comprehensive","adj.","/ˌkɑːmprɪˈhensɪv/","포괄적인, 종합적인","The report gives a comprehensive overview of the problem.","그 보고서는 문제에 대한 포괄적인 개요를 제공한다."],
+["concede","v.","/kənˈsiːd/","(마지못해) 인정하다","He finally conceded that he had made a mistake.","그는 결국 자신이 실수했다는 것을 인정했다."],
+["conscientious","adj.","/ˌkɑːnʃiˈenʃəs/","양심적인, 성실한","She is a conscientious student who never misses a deadline.","그녀는 마감을 절대 놓치지 않는 성실한 학생이다."],
+["consensus","n.","/kənˈsensəs/","합의, 의견 일치","The team finally reached a consensus on the design.","팀은 마침내 디자인에 대해 합의에 이르렀다."],
+["constrain","v.","/kənˈstreɪn/","제한하다, 억제하다","Our plans are constrained by a limited budget.","우리 계획은 한정된 예산 때문에 제약을 받는다."],
+["contemplate","v.","/ˈkɑːntəmpleɪt/","심사숙고하다","She sat by the lake, contemplating her future.","그녀는 호숫가에 앉아 자신의 미래를 곰곰이 생각했다."],
+["contradict","v.","/ˌkɑːntrəˈdɪkt/","모순되다, 반박하다","The witness's story contradicts the evidence.","그 증인의 진술은 증거와 모순된다."],
+["conventional","adj.","/kənˈvenʃənl/","관습적인, 기존의","Electric cars are replacing conventional gasoline vehicles.","전기차가 기존의 휘발유 차량을 대체하고 있다."],
+["crucial","adj.","/ˈkruːʃl/","결정적인, 매우 중요한","Getting enough sleep is crucial for memory.","충분한 수면은 기억력에 매우 중요하다."],
+["curb","v.","/kɜːrb/","억제하다","The government introduced new laws to curb pollution.","정부는 오염을 억제하기 위해 새 법을 도입했다."],
+["deceive","v.","/dɪˈsiːv/","속이다","Don't let his friendly smile deceive you.","그의 친근한 미소에 속지 마라."],
+["deliberate","adj.","/dɪˈlɪbərət/","의도적인, 신중한","It was a deliberate attempt to mislead the public.","그것은 대중을 오도하려는 의도적인 시도였다."],
+["derive","v.","/dɪˈraɪv/","끌어내다, 유래하다","Many English words derive from Latin.","많은 영어 단어가 라틴어에서 유래한다."],
+["deteriorate","v.","/dɪˈtɪriəreɪt/","악화되다","His health began to deteriorate after the accident.","사고 이후 그의 건강이 악화되기 시작했다."],
+["diligent","adj.","/ˈdɪlɪdʒənt/","근면한, 성실한","Diligent practice is the key to learning an instrument.","성실한 연습이 악기를 배우는 비결이다."],
+["diminish","v.","/dɪˈmɪnɪʃ/","줄어들다, 약화시키다","The noise diminished as the train moved away.","기차가 멀어지자 소음이 줄어들었다."],
+["discrepancy","n.","/dɪˈskrepənsi/","불일치, 차이","There is a discrepancy between the two reports.","두 보고서 사이에 불일치가 있다."],
+["disperse","v.","/dɪˈspɜːrs/","흩어지다, 해산시키다","The crowd slowly dispersed after the concert.","콘서트가 끝난 후 군중이 천천히 흩어졌다."],
+["distinguish","v.","/dɪˈstɪŋɡwɪʃ/","구별하다","Can you distinguish between a crocodile and an alligator?","크로커다일과 앨리게이터를 구별할 수 있니?"],
+["dominant","adj.","/ˈdɑːmɪnənt/","지배적인, 우세한","Smartphones have become the dominant way people access the internet.","스마트폰은 사람들이 인터넷에 접속하는 주된 수단이 되었다."],
+["elaborate","adj.","/ɪˈlæbərət/","정교한, 공들인","The architect showed us an elaborate model of the museum.","건축가는 우리에게 박물관의 정교한 모형을 보여 주었다."],
+["eloquent","adj.","/ˈeləkwənt/","유창한, 설득력 있는","The president gave an eloquent speech about unity.","대통령은 화합에 관한 설득력 있는 연설을 했다."],
+["embrace","v.","/ɪmˈbreɪs/","받아들이다, 포옹하다","The company was quick to embrace new technology.","그 회사는 신기술을 재빨리 받아들였다."],
+["emerge","v.","/ɪˈmɜːrdʒ/","나타나다, 드러나다","New evidence emerged during the investigation.","조사 도중 새로운 증거가 드러났다."],
+["empathy","n.","/ˈempəθi/","공감","Good doctors show empathy toward their patients.","좋은 의사는 환자에게 공감을 보인다."],
+["enhance","v.","/ɪnˈhæns/","향상시키다","Music can enhance your ability to concentrate.","음악은 집중력을 높여 줄 수 있다."],
+["enormous","adj.","/ɪˈnɔːrməs/","거대한, 막대한","The project required an enormous amount of time.","그 프로젝트에는 엄청난 시간이 필요했다."],
+["evaluate","v.","/ɪˈvæljueɪt/","평가하다","Scientists are evaluating the safety of the new vaccine.","과학자들이 새 백신의 안전성을 평가하고 있다."],
+["evident","adj.","/ˈevɪdənt/","명백한","It was evident from her face that she was disappointed.","그녀의 얼굴을 보니 실망했다는 것이 분명했다."],
+["exaggerate","v.","/ɪɡˈzædʒəreɪt/","과장하다","He tends to exaggerate how much he studies.","그는 자기가 공부하는 양을 과장하는 경향이 있다."],
+["exceed","v.","/ɪkˈsiːd/","초과하다","Your bag must not exceed 20 kilograms.","가방은 20킬로그램을 초과하면 안 된다."],
+["explicit","adj.","/ɪkˈsplɪsɪt/","명시적인, 분명한","The teacher gave explicit instructions for the assignment.","선생님은 과제에 대해 명확한 지시를 내렸다."],
+["exploit","v.","/ɪkˈsplɔɪt/","이용하다, 착취하다","Some companies exploit cheap labor in poor countries.","일부 기업은 가난한 나라의 값싼 노동력을 착취한다."],
+["feasible","adj.","/ˈfiːzəbl/","실현 가능한","Is it feasible to finish the project by Friday?","금요일까지 프로젝트를 끝내는 게 가능할까?"],
+["fluctuate","v.","/ˈflʌktʃueɪt/","변동하다","Vegetable prices fluctuate depending on the weather.","채소 가격은 날씨에 따라 변동한다."],
+["formidable","adj.","/ˈfɔːrmɪdəbl/","만만찮은, 무시무시한","The champion is a formidable opponent.","그 챔피언은 만만찮은 상대이다."],
+["fragile","adj.","/ˈfrædʒl/","깨지기 쉬운, 연약한","Please be careful; these glasses are fragile.","조심해 주세요. 이 유리잔들은 깨지기 쉬워요."],
+["frugal","adj.","/ˈfruːɡl/","검소한, 절약하는","My grandparents lived a frugal life and saved every penny.","우리 조부모님은 검소하게 사시며 한 푼도 아끼셨다."],
+["fundamental","adj.","/ˌfʌndəˈmentl/","근본적인, 기본적인","Freedom of speech is a fundamental right.","표현의 자유는 기본적인 권리이다."],
+["genuine","adj.","/ˈdʒenjuɪn/","진짜의, 진심 어린","She showed genuine interest in my story.","그녀는 내 이야기에 진심 어린 관심을 보였다."],
+["hypothesis","n.","/haɪˈpɑːθəsɪs/","가설","The experiment was designed to test the hypothesis.","그 실험은 가설을 검증하기 위해 고안되었다."],
+["identical","adj.","/aɪˈdentɪkl/","동일한, 똑같은","The twins wore identical jackets to school.","쌍둥이는 똑같은 재킷을 입고 학교에 왔다."],
+["imminent","adj.","/ˈɪmɪnənt/","임박한","Dark clouds warned us that a storm was imminent.","먹구름은 폭풍이 임박했음을 알려 주었다."],
+["implement","v.","/ˈɪmplɪment/","시행하다, 실행하다","The school will implement a new dress code next month.","학교는 다음 달에 새 복장 규정을 시행할 것이다."],
+["implicit","adj.","/ɪmˈplɪsɪt/","암시된, 암묵적인","There was an implicit warning in his words.","그의 말에는 암묵적인 경고가 담겨 있었다."],
+["incentive","n.","/ɪnˈsentɪv/","동기, 장려책","The bonus is an incentive for employees to work harder.","보너스는 직원들이 더 열심히 일하게 하는 장려책이다."],
+["indispensable","adj.","/ˌɪndɪˈspensəbl/","필수적인, 없어서는 안 될","A good dictionary is indispensable for learning a language.","좋은 사전은 언어 학습에 없어서는 안 될 것이다."],
+["inevitable","adj.","/ɪnˈevɪtəbl/","불가피한, 피할 수 없는","Change is inevitable, so we must learn to adapt.","변화는 피할 수 없으니 우리는 적응하는 법을 배워야 한다."],
+["inherent","adj.","/ɪnˈhɪrənt/","고유의, 내재된","Every sport has some inherent risk of injury.","모든 스포츠에는 어느 정도 부상 위험이 내재되어 있다."],
+["initiative","n.","/ɪˈnɪʃətɪv/","주도권, 솔선","She took the initiative and organized the meeting herself.","그녀는 솔선해서 직접 회의를 준비했다."],
+["innovative","adj.","/ˈɪnəveɪtɪv/","혁신적인","The startup developed an innovative way to recycle plastic.","그 스타트업은 플라스틱을 재활용하는 혁신적인 방법을 개발했다."],
+["integrity","n.","/ɪnˈteɡrəti/","진실성, 청렴","A leader with integrity keeps their promises.","진실성 있는 지도자는 약속을 지킨다."],
+["intervene","v.","/ˌɪntərˈviːn/","개입하다","The teacher had to intervene when the argument got loud.","말다툼이 커지자 선생님이 개입해야 했다."],
+["intricate","adj.","/ˈɪntrɪkət/","복잡한, 정교한","The carpet was decorated with intricate patterns.","그 카펫은 복잡한 무늬로 장식되어 있었다."],
+["intuitive","adj.","/ɪnˈtuːɪtɪv/","직관적인","The app has an intuitive design that anyone can use.","그 앱은 누구나 쓸 수 있는 직관적인 디자인을 갖추고 있다."],
+["invaluable","adj.","/ɪnˈvæljuəbl/","매우 귀중한","Her advice was invaluable to me during my first year.","첫해 동안 그녀의 조언은 내게 매우 귀중했다."],
+["justify","v.","/ˈdʒʌstɪfaɪ/","정당화하다","How can you justify spending so much money on shoes?","신발에 그렇게 많은 돈을 쓴 것을 어떻게 정당화할 수 있니?"],
+["legitimate","adj.","/lɪˈdʒɪtɪmət/","합법적인, 정당한","That's a legitimate question, and it deserves an answer.","그건 정당한 질문이고 답을 들을 자격이 있다."],
+["meticulous","adj.","/məˈtɪkjələs/","꼼꼼한, 세심한","He keeps meticulous records of all his expenses.","그는 모든 지출을 꼼꼼하게 기록한다."],
+["mitigate","v.","/ˈmɪtɪɡeɪt/","완화하다, 경감하다","Planting trees can help mitigate the effects of climate change.","나무를 심는 것은 기후 변화의 영향을 완화하는 데 도움이 된다."],
+["negligible","adj.","/ˈneɡlɪdʒəbl/","무시해도 될 정도의","The difference in price is negligible.","가격 차이는 무시해도 될 정도다."],
+["notorious","adj.","/noʊˈtɔːriəs/","악명 높은","This road is notorious for traffic jams.","이 도로는 교통 체증으로 악명이 높다."],
+["obscure","adj.","/əbˈskjʊr/","잘 알려지지 않은, 모호한","The song was written by an obscure poet from the 1800s.","그 노래는 1800년대의 잘 알려지지 않은 시인이 썼다."],
+["obsolete","adj.","/ˌɑːbsəˈliːt/","구식의, 쓸모없게 된","Fax machines have become almost obsolete.","팩스기는 거의 쓸모없게 되었다."],
+["optimistic","adj.","/ˌɑːptɪˈmɪstɪk/","낙관적인","The coach is optimistic about the team's chances.","코치는 팀의 승산에 대해 낙관적이다."],
+["paradox","n.","/ˈpærədɑːks/","역설","It's a paradox that the more choices we have, the harder it is to decide.","선택지가 많을수록 결정하기 더 어렵다는 것은 역설이다."],
+["perceive","v.","/pərˈsiːv/","인지하다, ~로 여기다","Many people perceive math as a difficult subject.","많은 사람들이 수학을 어려운 과목으로 여긴다."],
+["perseverance","n.","/ˌpɜːrsəˈvɪrəns/","인내, 끈기","With perseverance, she finally passed the exam.","끈기 있게 노력한 끝에 그녀는 마침내 시험에 합격했다."],
+["persuade","v.","/pərˈsweɪd/","설득하다","I persuaded my parents to let me go on the trip.","나는 부모님을 설득해서 여행을 갈 수 있게 되었다."],
+["phenomenon","n.","/fəˈnɑːmɪnɑːn/","현상","The northern lights are a natural phenomenon.","오로라는 자연 현상이다."],
+["plausible","adj.","/ˈplɔːzəbl/","그럴듯한","His excuse sounded plausible, but nobody believed him.","그의 변명은 그럴듯하게 들렸지만 아무도 그를 믿지 않았다."],
+["pragmatic","adj.","/præɡˈmætɪk/","실용적인","We need a pragmatic solution, not a perfect one.","우리에게는 완벽한 해결책이 아니라 실용적인 해결책이 필요하다."],
+["precede","v.","/prɪˈsiːd/","~에 앞서다","A short speech will precede the award ceremony.","시상식에 앞서 짧은 연설이 있을 것이다."],
+["predominant","adj.","/prɪˈdɑːmɪnənt/","두드러진, 지배적인","Blue is the predominant color in his paintings.","그의 그림에서는 파란색이 두드러진다."],
+["preliminary","adj.","/prɪˈlɪmɪneri/","예비의, 사전의","The preliminary results look promising.","예비 결과가 유망해 보인다."],
+["prevalent","adj.","/ˈprevələnt/","널리 퍼진, 만연한","Smartphone addiction is prevalent among teenagers.","스마트폰 중독은 십대들 사이에 널리 퍼져 있다."],
+["profound","adj.","/prəˈfaʊnd/","심오한, 깊은","The book had a profound effect on my thinking.","그 책은 내 사고방식에 깊은 영향을 미쳤다."],
+["prohibit","v.","/proʊˈhɪbɪt/","금지하다","Smoking is prohibited in all public buildings.","모든 공공건물에서 흡연은 금지되어 있다."],
+["prominent","adj.","/ˈprɑːmɪnənt/","저명한, 눈에 띄는","A prominent scientist will speak at the conference.","저명한 과학자가 학회에서 강연할 것이다."],
+["prosperity","n.","/prɑːˈsperəti/","번영","The new trade deal brought prosperity to the region.","새 무역 협정은 그 지역에 번영을 가져왔다."],
+["provoke","v.","/prəˈvoʊk/","유발하다, 화나게 하다","His comments provoked an angry reaction online.","그의 발언은 온라인에서 분노를 불러일으켰다."],
+["reconcile","v.","/ˈrekənsaɪl/","화해시키다, 조화시키다","It's hard to reconcile work and family life.","일과 가정생활을 조화시키기는 어렵다."],
+["redundant","adj.","/rɪˈdʌndənt/","불필요한, 중복된","Remove any redundant words from your essay.","에세이에서 불필요한 단어를 모두 빼라."],
+["reinforce","v.","/ˌriːɪnˈfɔːrs/","강화하다","Reviewing notes daily reinforces what you have learned.","매일 노트를 복습하면 배운 내용이 강화된다."],
+["reluctant","adj.","/rɪˈlʌktənt/","꺼리는, 마지못한","He was reluctant to admit that he was wrong.","그는 자신이 틀렸다는 것을 인정하기를 꺼렸다."],
+["resilient","adj.","/rɪˈzɪliənt/","회복력 있는","Children are often more resilient than adults think.","아이들은 어른들이 생각하는 것보다 회복력이 강한 경우가 많다."],
+["restore","v.","/rɪˈstɔːr/","복원하다, 회복시키다","Workers are restoring the old palace to its original state.","인부들이 옛 궁궐을 원래 상태로 복원하고 있다."],
+["retain","v.","/rɪˈteɪn/","유지하다, 기억하다","Sleep helps your brain retain new information.","잠은 뇌가 새로운 정보를 기억하는 데 도움을 준다."],
+["rigorous","adj.","/ˈrɪɡərəs/","엄격한, 철저한","New drugs go through rigorous testing before approval.","신약은 승인 전에 엄격한 시험을 거친다."],
+["scrutiny","n.","/ˈskruːtəni/","정밀 조사, 감시","The politician's spending came under public scrutiny.","그 정치인의 지출이 대중의 철저한 감시를 받게 되었다."],
+["skeptical","adj.","/ˈskeptɪkl/","회의적인","Scientists are skeptical of the company's claims.","과학자들은 그 회사의 주장에 회의적이다."],
+["spontaneous","adj.","/spɑːnˈteɪniəs/","자발적인, 즉흥적인","The audience broke into spontaneous applause.","관객들은 자발적으로 박수를 치기 시작했다."],
+["subsequent","adj.","/ˈsʌbsɪkwənt/","그 다음의, 이후의","The first chapter was boring, but subsequent chapters were exciting.","첫 장은 지루했지만 이후의 장들은 흥미진진했다."],
+["substantial","adj.","/səbˈstænʃl/","상당한","She received a substantial scholarship from the university.","그녀는 대학으로부터 상당한 장학금을 받았다."],
+["subtle","adj.","/ˈsʌtl/","미묘한","There is a subtle difference between the two colors.","두 색 사이에는 미묘한 차이가 있다."],
+["sufficient","adj.","/səˈfɪʃnt/","충분한","We don't have sufficient evidence to prove it.","우리는 그것을 증명할 충분한 증거가 없다."],
+["superficial","adj.","/ˌsuːpərˈfɪʃl/","피상적인, 표면적인","He has only a superficial knowledge of history.","그는 역사에 대해 피상적인 지식만 갖고 있다."],
+["suppress","v.","/səˈpres/","억누르다, 진압하다","She tried to suppress a laugh during the lecture.","그녀는 강의 중에 웃음을 참으려고 애썼다."],
+["sustainable","adj.","/səˈsteɪnəbl/","지속 가능한","We must find sustainable sources of energy.","우리는 지속 가능한 에너지원을 찾아야 한다."],
+["tedious","adj.","/ˈtiːdiəs/","지루한, 싫증 나는","Copying the data by hand was a tedious job.","데이터를 손으로 옮겨 적는 것은 지루한 일이었다."],
+["tentative","adj.","/ˈtentətɪv/","잠정적인, 머뭇거리는","We made tentative plans to meet next weekend.","우리는 다음 주말에 만나기로 잠정적인 계획을 세웠다."],
+["thrive","v.","/θraɪv/","번성하다, 잘 자라다","These plants thrive in warm, humid conditions.","이 식물들은 따뜻하고 습한 환경에서 잘 자란다."],
+["transparent","adj.","/trænsˈpærənt/","투명한","The government promised to be more transparent about its spending.","정부는 지출에 대해 더 투명해지겠다고 약속했다."],
+["trivial","adj.","/ˈtrɪviəl/","사소한","Don't waste time arguing about trivial matters.","사소한 문제로 다투느라 시간을 낭비하지 마라."],
+["ubiquitous","adj.","/juːˈbɪkwɪtəs/","어디에나 있는","Coffee shops have become ubiquitous in big cities.","대도시에서 커피숍은 어디에나 있게 되었다."],
+["undermine","v.","/ˌʌndərˈmaɪn/","약화시키다, 훼손하다","Constant criticism can undermine a child's confidence.","끊임없는 비판은 아이의 자신감을 약화시킬 수 있다."],
+["unprecedented","adj.","/ʌnˈpresɪdentɪd/","전례 없는","The city saw unprecedented levels of rainfall this summer.","그 도시는 올여름 전례 없는 강우량을 기록했다."],
+["vague","adj.","/veɪɡ/","모호한, 희미한","I have only a vague memory of my first day at school.","나는 학교 첫날에 대한 희미한 기억만 갖고 있다."],
+["versatile","adj.","/ˈvɜːrsətl/","다재다능한, 다용도의","Eggs are a versatile ingredient in cooking.","달걀은 요리에서 다양하게 쓰이는 재료이다."],
+["viable","adj.","/ˈvaɪəbl/","실행 가능한","Solar power is now a viable alternative to coal.","태양광 발전은 이제 석탄의 실행 가능한 대안이다."],
+["vulnerable","adj.","/ˈvʌlnərəbl/","취약한, 연약한","Elderly people are more vulnerable to the flu.","노인들은 독감에 더 취약하다."],
+["wary","adj.","/ˈweri/","경계하는, 조심하는","Be wary of emails that ask for your password.","비밀번호를 요구하는 이메일을 경계하라."],
+["yield","v.","/jiːld/","산출하다, 생산하다","This farm yields about ten tons of rice each year.","이 농장은 매년 약 10톤의 쌀을 생산한다."],
+["adversity","n.","/ədˈvɜːrsəti/","역경","She showed great courage in the face of adversity.","그녀는 역경 앞에서 대단한 용기를 보여 주었다."],
+["aesthetic","adj.","/esˈθetɪk/","미적인, 심미적인","The building has both practical and aesthetic value.","그 건물은 실용적 가치와 미적 가치를 모두 지닌다."],
+["apprehensive","adj.","/ˌæprɪˈhensɪv/","걱정하는, 불안한","I felt apprehensive before my first job interview.","첫 면접 전에 나는 불안했다."],
+["candid","adj.","/ˈkændɪd/","솔직한","Thank you for your candid feedback on my presentation.","제 발표에 솔직한 피드백을 주셔서 감사합니다."],
+["cultivate","v.","/ˈkʌltɪveɪt/","경작하다, 기르다","Reading every day helps cultivate a rich vocabulary.","매일 독서하면 풍부한 어휘력을 기르는 데 도움이 된다."],
+["dilemma","n.","/dɪˈlemə/","딜레마, 진퇴양난","She faced a dilemma: tell the truth or protect her friend.","그녀는 진실을 말할지 친구를 보호할지 딜레마에 빠졌다."],
+["eminent","adj.","/ˈemɪnənt/","저명한, 탁월한","An eminent historian wrote the introduction to the book.","저명한 역사학자가 그 책의 서문을 썼다."],
+["hinder","v.","/ˈhɪndər/","방해하다","Heavy snow hindered the rescue efforts.","폭설이 구조 작업을 방해했다."],
+["indifferent","adj.","/ɪnˈdɪfrənt/","무관심한","How can you be indifferent to the suffering of others?","어떻게 다른 사람들의 고통에 무관심할 수 있니?"],
+["lucrative","adj.","/ˈluːkrətɪv/","수익성이 좋은","He left a lucrative job to become a teacher.","그는 수입이 좋은 직장을 그만두고 교사가 되었다."],
+["nostalgia","n.","/nəˈstældʒə/","향수, 그리움","Old photos filled her with nostalgia for her childhood.","오래된 사진들이 그녀를 어린 시절에 대한 향수에 젖게 했다."],
+["obstacle","n.","/ˈɑːbstəkl/","장애물","Fear of failure is the biggest obstacle to success.","실패에 대한 두려움이 성공의 가장 큰 장애물이다."],
+["prestigious","adj.","/preˈstɪdʒəs/","명망 있는, 일류의","She was accepted into a prestigious university.","그녀는 명문 대학에 합격했다."],
+["refute","v.","/rɪˈfjuːt/","반박하다","The scientist refuted the theory with new data.","그 과학자는 새로운 데이터로 그 이론을 반박했다."],
+["scarce","adj.","/skers/","부족한, 드문","Water becomes scarce during the dry season.","건기에는 물이 부족해진다."],
+["tangible","adj.","/ˈtændʒəbl/","실체가 있는, 가시적인","The new policy has produced tangible results.","새 정책은 가시적인 성과를 냈다."],
+["tolerate","v.","/ˈtɑːləreɪt/","참다, 용인하다","Our school does not tolerate bullying of any kind.","우리 학교는 어떤 형태의 괴롭힘도 용납하지 않는다."],
+["unanimous","adj.","/juˈnænɪməs/","만장일치의","The decision to cancel the trip was unanimous.","여행을 취소하자는 결정은 만장일치였다."],
+["vivid","adj.","/ˈvɪvɪd/","생생한, 선명한","She gave a vivid description of her trip to Iceland.","그녀는 아이슬란드 여행에 대해 생생하게 묘사했다."],
+["zealous","adj.","/ˈzeləs/","열성적인","The zealous fans waited outside the stadium all night.","열성 팬들은 밤새 경기장 밖에서 기다렸다."]
+];
+
+const PER = 5, N = W.length, DAYS = Math.floor(N / PER);
+const SPEAKER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+
+// Same date -> same five words on every device; each 30-day cycle is reshuffled.
+function rng(seed) {
+  return () => {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function order(cycle) {
+  const r = rng(cycle * 7919 + 2026), a = [...Array(N).keys()];
+  for (let i = N - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+const dayNumber = d => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+function wordsFor(day) {
+  const p = day % DAYS;
+  return order(Math.floor(day / DAYS)).slice(p * PER, p * PER + PER).map(i => W[i]);
+}
+
+const store = {
+  get(k, f) { try { const v = localStorage.getItem(k); return v == null ? f : JSON.parse(v); } catch { return f; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
+const state = {
+  offset: 0,
+  lang: store.get("lang", "en-US"),
+  rate: store.get("rate", 0.9),
+  hide: store.get("hide", false),
+  learned: new Set(store.get("learned", []))
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function highlight(sentence, word) {
+  const stem = word.length > 4 && /[ey]$/.test(word) ? word.slice(0, -1) : word;
+  const re = new RegExp("\\b(" + stem + "\\w*)", "i");
+  return esc(sentence).replace(re, "<mark>$1</mark>");
+}
+
+function viewDay() { return dayNumber(new Date()) + state.offset; }
+
+function render() {
+  stopAll();
+  const day = viewDay();
+  const date = new Date(day * 864e5);
+  $("date").textContent = date.toLocaleDateString("ko-KR", { timeZone: "UTC", year: "numeric", month: "long", day: "numeric", weekday: "short" })
+    + (state.offset === 0 ? " · 오늘" : "");
+  $("next").disabled = state.offset >= 0;
+  $("today").disabled = state.offset === 0;
+
+  const words = wordsFor(day);
+  $("list").innerHTML = words.map(([w, pos, ipa, ko, ex, exKo], i) => `
+    <li class="card${state.learned.has(w) ? " is-learned" : ""}" data-i="${i}">
+      <div class="head">
+        <div class="head-text">
+          <h2 class="word" lang="en">${w}</h2>
+          <div class="meta"><span class="ipa">${ipa}</span><span class="pos">${pos}</span></div>
+        </div>
+        <button class="speak" type="button" data-say="word" data-i="${i}" aria-label="${w} 발음 듣기">${SPEAKER}</button>
+      </div>
+      <p class="meaning ko">${ko}</p>
+      <div class="example">
+        <div class="example-text">
+          <p class="en" lang="en">${highlight(ex, w)}</p>
+          <p class="ko-line ko">${exKo}</p>
+        </div>
+        <button class="speak sm" type="button" data-say="ex" data-i="${i}" aria-label="예문 듣기">${SPEAKER}</button>
+      </div>
+      <div class="foot">
+        <label class="check">
+          <input type="checkbox" id="learned-${w}" data-w="${w}"${state.learned.has(w) ? " checked" : ""}>
+          <span class="check-box"></span><span>외웠어요</span>
+        </label>
+      </div>
+    </li>`).join("");
+  state.words = words;
+  updateProgress();
+}
+
+function updateProgress() {
+  const n = state.words.filter(([w]) => state.learned.has(w)).length;
+  $("progress").textContent = `외운 단어 ${n}/${PER}`;
+}
+
+function syncControls() {
+  document.querySelectorAll("#lang button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === state.lang));
+  document.querySelectorAll("#rate button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === state.rate));
+  $("hide").setAttribute("aria-pressed", state.hide);
+  $("hide").textContent = state.hide ? "뜻 보이기" : "뜻 가리기";
+  document.body.classList.toggle("hide-ko", state.hide);
+}
+
+// ---- Speech ----
+const synth = window.speechSynthesis;
+let voices = [];
+function loadVoices() { voices = synth ? synth.getVoices() : []; }
+function pickVoice(lang) {
+  const norm = v => v.lang.replace("_", "-").toLowerCase();
+  const same = voices.filter(v => norm(v) === lang.toLowerCase());
+  const pool = same.length ? same : voices.filter(v => norm(v).startsWith("en"));
+  return pool.find(v => /natural|neural|google|online|premium|enhanced/i.test(v.name)) || pool[0] || null;
+}
+
+let runId = 0;
+function clearMarks() {
+  document.querySelectorAll(".is-speaking").forEach(e => e.classList.remove("is-speaking"));
+  document.querySelectorAll(".card.is-active").forEach(e => e.classList.remove("is-active"));
+}
+function say(text, btn, card) {
+  return new Promise(resolve => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = state.lang;
+    const v = pickVoice(state.lang);
+    if (v) u.voice = v;
+    u.rate = state.rate;
+    clearMarks();
+    btn && btn.classList.add("is-speaking");
+    card && card.classList.add("is-active");
+    const done = () => { btn && btn.classList.remove("is-speaking"); card && card.classList.remove("is-active"); resolve(); };
+    u.onend = done; u.onerror = done;
+    synth.speak(u);
+  });
+}
+function stopAll() {
+  runId++;
+  if (synth) synth.cancel();
+  clearMarks();
+  $("playall").textContent = "▶ 전체 듣기";
+}
+const pause = ms => new Promise(r => setTimeout(r, ms));
+
+async function playAll() {
+  stopAll();
+  const id = runId;
+  $("playall").textContent = "■ 멈추기";
+  const cards = [...document.querySelectorAll(".card")];
+  for (let i = 0; i < state.words.length; i++) {
+    const [w, , , , ex] = state.words[i];
+    const card = cards[i];
+    card.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    await say(w, card.querySelector('[data-say="word"]'), card); if (id !== runId) return;
+    await pause(500); if (id !== runId) return;
+    await say(w, card.querySelector('[data-say="word"]'), card); if (id !== runId) return;
+    await pause(600); if (id !== runId) return;
+    await say(ex, card.querySelector('[data-say="ex"]'), card); if (id !== runId) return;
+    await pause(1200); if (id !== runId) return;
+  }
+  stopAll();
+}
+
+// ---- Events ----
+$("list").addEventListener("click", e => {
+  const ko = e.target.closest(".ko");
+  if (ko && state.hide) { ko.classList.toggle("revealed"); return; }
+  const btn = e.target.closest("[data-say]");
+  if (!btn || !synth) return;
+  const wasSpeaking = btn.classList.contains("is-speaking");
+  stopAll();
+  if (wasSpeaking) return;
+  const [w, , , , ex] = state.words[+btn.dataset.i];
+  say(btn.dataset.say === "word" ? w : ex, btn, btn.closest(".card"));
+});
+$("list").addEventListener("change", e => {
+  const w = e.target.dataset.w;
+  if (!w) return;
+  e.target.checked ? state.learned.add(w) : state.learned.delete(w);
+  e.target.closest(".card").classList.toggle("is-learned", e.target.checked);
+  store.set("learned", [...state.learned]);
+  updateProgress();
+});
+$("lang").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.lang = b.dataset.v; store.set("lang", state.lang); syncControls();
+});
+$("rate").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.rate = +b.dataset.v; store.set("rate", state.rate); syncControls();
+});
+$("hide").addEventListener("click", () => {
+  state.hide = !state.hide; store.set("hide", state.hide);
+  document.querySelectorAll(".ko.revealed").forEach(e => e.classList.remove("revealed"));
+  syncControls();
+});
+$("playall").addEventListener("click", () => {
+  if (!synth) return;
+  $("playall").textContent.startsWith("■") ? stopAll() : playAll();
+});
+$("prev").addEventListener("click", () => { state.offset--; render(); });
+$("next").addEventListener("click", () => { if (state.offset < 0) { state.offset++; render(); } });
+$("today").addEventListener("click", () => { state.offset = 0; render(); });
+
+// Pick up the new day's words if the page stays open past midnight.
+let shownToday = dayNumber(new Date());
+function checkRollover() {
+  const t = dayNumber(new Date());
+  if (t !== shownToday) { shownToday = t; if (state.offset === 0) render(); else state.offset--; }
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkRollover(); });
+setInterval(checkRollover, 60000);
+
+if (synth) {
+  loadVoices();
+  synth.addEventListener?.("voiceschanged", loadVoices);
+} else {
+  $("notice").hidden = false;
+  $("playall").disabled = true;
+}
+syncControls();
+render();
+</script>
+
+</html>
+
